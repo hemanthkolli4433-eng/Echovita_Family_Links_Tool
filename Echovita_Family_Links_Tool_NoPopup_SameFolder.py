@@ -299,20 +299,17 @@ def create_driver():
         )
 
     options = uc.ChromeOptions()
-    
-    # --- GitHub Actions Windows Runner Optimization ---
-    options.add_argument("--headless=new") # Run headlessly so Windows doesn't require an active desktop session
+
+    # GitHub Actions / Linux friendly options
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    
-    # --- Silence the GCM & Registration errors ---
+    options.add_argument("--window-size=1920,1080")
+
+    # Logging / performance options
     options.add_argument("--log-level=3")
     options.add_argument("--disable-logging")
-    options.add_experimental_option("excludeSwitches", ["enable-logging"])
     options.add_argument("--disable-search-engine-choice-screen")
-    
-    # --- Standard performance tweaks ---
-    options.add_argument("--start-maximized")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-background-timer-throttling")
     options.add_argument("--disable-backgrounding-occluded-windows")
@@ -326,6 +323,10 @@ def create_driver():
     options.add_argument("--disable-features=OptimizationHints,MediaRouter,Translate")
     options.add_argument("--no-first-run")
     options.add_argument("--no-default-browser-check")
+
+    # IMPORTANT:
+    # Do NOT use this in GitHub Actions with undetected_chromedriver:
+    # options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
     driver = uc.Chrome(options=options, version_main=chrome_major)
     driver.set_page_load_timeout(60)

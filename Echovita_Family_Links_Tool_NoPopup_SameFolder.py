@@ -7,7 +7,6 @@ import sys
 
 
 from openpyxl import Workbook, load_workbook
-from pandas import options
 import undetected_chromedriver as uc
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException

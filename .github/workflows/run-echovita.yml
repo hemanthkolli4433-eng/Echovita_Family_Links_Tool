@@ -1,7 +1,4 @@
-- name: Run Echovita Python tool
-  shell: powershell
-  run: |
-          python Echovita_Family_Links_Tool_NoPopup_SameFolder.py 2>&1 | Select-String -Pattern "google_apis\\gcm" -NotMatch
+name: Run Echovita Tool Every 6 Hours
 
 on:
   schedule:
@@ -15,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 # Note: v4 is the current stable standard version
+        uses: actions/checkout@v4 
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,8 +25,9 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Echovita Python tool
+        shell: powershell
         run: |
-          python Echovita_Family_Links_Tool_NoPopup_SameFolder.py
+          python Echovita_Family_Links_Tool_NoPopup_SameFolder.py 2>&1 | Select-String -Pattern "google_apis\\gcm" -NotMatch
 
       - name: Upload output Excel
         if: always() # 🌟 Ensures the partial Excel sheet is uploaded even if the script errors out halfway!

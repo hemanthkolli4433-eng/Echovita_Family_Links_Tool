@@ -1,23 +1,28 @@
-name: Echovita Family Links Scraper
+name: Run Echovita Tool Every 6 Hours
 
 on:
   schedule:
-    - cron: '0 2 * * *'
-
+    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 jobs:
-  scrape:
+  run-tool:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Show repo files
+        run: |
+          pwd
+          ls -la
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install Google Chrome and Xvfb
         run: |
@@ -28,7 +33,7 @@ jobs:
           rm -rf ~/.local/share/undetected_chromedriver
           rm -rf ~/.cache/selenium
 
-      - name: Install Python dependencies
+      - name: Install Python packages
         run: |
           python -m pip install --upgrade pip setuptools wheel
           if [ -f requirements.txt ]; then
@@ -39,36 +44,41 @@ jobs:
 
       - name: Remove old output files
         run: |
-          rm -f Echovita_Family_Links_Tool_Output_*.xlsx
+          rm -f Echovita_Family_Links_Tool_Output.xlsx
+          rm -f Echovita_Family_Links_Tool_Output_Cleaned.xlsx
           rm -f Combined_Excel.xlsx
 
-      - name: Run Echovita scraper
+      - name: Step 1 - Run V1 Echovita scraper
         run: |
           xvfb-run -a python Echovita_Family_Links_Tool_V1.py
 
-      - name: Run combine tool using scraper output
-        if: always()
+      - name: Step 2 - Run DOD date cleanup
         run: |
-          shopt -s nullglob
-          files=(Echovita_Family_Links_Tool_Output_*.xlsx)
-
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No scraper output Excel found."
+          if [ -f "Echovita_Family_Links_Tool_Output.xlsx" ]; then
+            python Echovita_Dates_Cleanup_Tool.py Echovita_Family_Links_Tool_Output.xlsx
+          else
+            echo "V1 scraper output file not found."
             ls -la
-            exit 0
+            exit 1
           fi
 
-          echo "Found scraper output files:"
-          printf '%s\n' "${files[@]}"
+      - name: Step 3 - Run combine tool using cleaned Excel
+        run: |
+          if [ -f "Echovita_Family_Links_Tool_Output_Cleaned.xlsx" ]; then
+            python Combine_Excel_Tool.py Echovita_Family_Links_Tool_Output_Cleaned.xlsx
+          else
+            echo "Cleaned Excel file not found."
+            ls -la
+            exit 1
+          fi
 
-          python Combine_Excel_Tool.py "${files[@]}"
-
-      - name: Upload output files
+      - name: Upload final output files
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: echovita-output
           path: |
-            Echovita_Family_Links_Tool_Output_*.xlsx
+            Echovita_Family_Links_Tool_Output.xlsx
+            Echovita_Family_Links_Tool_Output_Cleaned.xlsx
             Combined_Excel.xlsx
           retention-days: 30

@@ -287,26 +287,105 @@ def read_input_excel(input_file_path):
     return input_rows
 
 
-# ---------------------- SELENIUM / PAGE HELPERS ---------------------- #
+def get_chrome_info():
+    """
+    Returns: (major_version, chrome_path)
+    Works on Windows and GitHub Ubuntu.
+    """
+
+    def try_browser(chrome_path):
+        try:
+            if chrome_path and os.path.exists(chrome_path):
+                ver_out = subprocess.check_output(
+                    [chrome_path, "--version"],
+                    text=True,
+                    stderr=subprocess.STDOUT
+                ).strip()
+                major = _parse_major(ver_out)
+                if major:
+                    print(f"Detected Chrome: {ver_out}")
+                    print(f"Chrome path: {chrome_path}")
+                    print(f"Chrome major version: {major}")
+                    return major, chrome_path
+        except Exception:
+            pass
+        return None, None
+
+    # Windows
+    if os.name == "nt":
+        try:
+            where_out = subprocess.check_output(
+                ["where", "chrome"],
+                text=True,
+                stderr=subprocess.STDOUT
+            )
+            for line in where_out.splitlines():
+                major, path = try_browser(line.strip())
+                if major:
+                    return major, path
+        except Exception:
+            pass
+
+        local = os.environ.get("LOCALAPPDATA", "")
+        candidates = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            os.path.join(local, r"Google\Chrome\Application\chrome.exe"),
+            os.path.join(local, r"Google\Chrome Beta\Application\chrome.exe"),
+            os.path.join(local, r"Google\Chrome SxS\Application\chrome.exe"),
+        ]
+
+    # Linux / GitHub Actions
+    else:
+        candidates = []
+        for cmd in ["google-chrome-stable", "google-chrome", "chromium", "chromium-browser"]:
+            try:
+                path = subprocess.check_output(
+                    ["which", cmd],
+                    text=True,
+                    stderr=subprocess.STDOUT
+                ).strip()
+                if path:
+                    candidates.append(path)
+            except Exception:
+                pass
+
+        candidates += [
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+        ]
+
+    for chrome_path in candidates:
+        major, path = try_browser(chrome_path)
+        if major:
+            return major, path
+
+    return None, None
+
+
+def get_chrome_major_version():
+    major, _ = get_chrome_info()
+    return major
 
 
 def create_driver():
-    chrome_major = get_chrome_major_version()
-    if not chrome_major:
+    chrome_major, chrome_path = get_chrome_info()
+
+    if not chrome_major or not chrome_path:
         raise Exception(
-            "Could not detect your Google Chrome version.\n"
+            "Could not detect Google Chrome version/path.\n"
             "Make sure Google Chrome is installed."
         )
 
     options = uc.ChromeOptions()
 
-    # GitHub Actions / Linux friendly options
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
 
-    # Logging / performance options
     options.add_argument("--log-level=3")
     options.add_argument("--disable-logging")
     options.add_argument("--disable-search-engine-choice-screen")
@@ -314,7 +393,6 @@ def create_driver():
     options.add_argument("--disable-background-timer-throttling")
     options.add_argument("--disable-backgrounding-occluded-windows")
     options.add_argument("--disable-renderer-backgrounding")
-    options.add_argument("--disable-features=CalculateNativeWinOcclusion")
     options.add_argument("--disable-background-networking")
     options.add_argument("--disable-sync")
     options.add_argument("--disable-component-update")
@@ -324,13 +402,18 @@ def create_driver():
     options.add_argument("--no-first-run")
     options.add_argument("--no-default-browser-check")
 
-    # IMPORTANT:
-    # Do NOT use this in GitHub Actions with undetected_chromedriver:
+    # Do NOT use this on GitHub:
     # options.add_experimental_option("excludeSwitches", ["enable-logging"])
 
-    driver = uc.Chrome(options=options, version_main=chrome_major)
+    driver = uc.Chrome(
+        options=options,
+        version_main=chrome_major,
+        browser_executable_path=chrome_path
+    )
+
     driver.set_page_load_timeout(60)
     return driver
+  
 
 
 def get_body_text(driver):

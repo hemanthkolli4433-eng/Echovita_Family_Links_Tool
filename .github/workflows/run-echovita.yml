@@ -8,13 +8,14 @@ on:
 jobs:
   run-tool:
     runs-on: windows-latest
+    timeout-minutes: 30 # 🌟 Safeguard: Stops the workflow if it gets stuck for more than 30 mins
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4 # Note: v4 is the current stable standard version
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -28,6 +29,7 @@ jobs:
           python Echovita_Family_Links_Tool_NoPopup_SameFolder.py
 
       - name: Upload output Excel
+        if: always() # 🌟 Ensures the partial Excel sheet is uploaded even if the script errors out halfway!
         uses: actions/upload-artifact@v4
         with:
           name: Echovita_Output

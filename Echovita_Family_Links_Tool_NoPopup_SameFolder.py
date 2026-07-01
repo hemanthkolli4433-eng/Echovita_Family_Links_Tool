@@ -147,14 +147,10 @@ def find_input_file():
 
 
 def wait_for_user(message):
-    """No popup. Uses console input instead."""
-    print("\n" + message)
-    try:
-        input("Press ENTER to continue...")
-    except Exception:
-        # If running as exe without console, wait a little and continue checking.
-        time.sleep(5)
-
+    """Modified for GitHub Actions: Bypass interactive prompts to avoid freezing."""
+    print(f"\n[AUTOMATION NOTICE] {message}")
+    print("GitHub Actions detected. Waiting 10 seconds automatically instead of waiting for a keypress...")
+    time.sleep(10)
 
 # ---------------------- EXCEL HELPERS ---------------------- #
 
@@ -282,26 +278,35 @@ def create_driver():
     if not chrome_major:
         raise Exception(
             "Could not detect your Google Chrome version.\n"
-            "Make sure Google Chrome is installed. If Chrome is installed, open Chrome once and run again."
+            "Make sure Google Chrome is installed."
         )
 
     options = uc.ChromeOptions()
-    options.add_argument("--start-maximized")
+    
+    # --- GitHub Actions Windows Runner Optimization ---
+    options.add_argument("--headless=new") # Run headlessly so Windows doesn't require an active desktop session
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    
+    # --- Silence the GCM & Registration errors ---
     options.add_argument("--log-level=3")
     options.add_argument("--disable-logging")
+    options.add_experimental_option("excludeSwitches", ["enable-logging"])
+    options.add_argument("--disable-search-engine-choice-screen")
+    
+    # --- Standard performance tweaks ---
+    options.add_argument("--start-maximized")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-background-timer-throttling")
     options.add_argument("--disable-backgrounding-occluded-windows")
     options.add_argument("--disable-renderer-backgrounding")
     options.add_argument("--disable-features=CalculateNativeWinOcclusion")
-    
     options.add_argument("--disable-background-networking")
     options.add_argument("--disable-sync")
     options.add_argument("--disable-component-update")
     options.add_argument("--disable-default-apps")
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-features=OptimizationHints,MediaRouter,Translate")
-    options.add_argument("--disable-search-engine-choice-screen")
     options.add_argument("--no-first-run")
     options.add_argument("--no-default-browser-check")
 

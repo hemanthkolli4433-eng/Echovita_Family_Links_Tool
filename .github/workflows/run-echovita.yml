@@ -1,4 +1,7 @@
-name: Run Echovita Tool Every 6 Hours
+- name: Run Echovita Python tool
+  shell: powershell
+  run: |
+          python Echovita_Family_Links_Tool_NoPopup_SameFolder.py 2>&1 | Select-String -Pattern "google_apis\\gcm" -NotMatch
 
 on:
   schedule:

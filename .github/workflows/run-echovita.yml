@@ -34,23 +34,29 @@ jobs:
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           else
-            pip install undetected-chromedriver selenium openpyxl
+            pip install undetected-chromedriver selenium openpyxl pandas
           fi
 
-      - name: Check installed versions
-        run: |
-          python --version
-          google-chrome --version
-          which google-chrome
-
-      - name: Run Echovita Python tool
+      - name: Run Echovita scraper
         run: |
           xvfb-run -a python Echovita_Family_Links_Tool_NoPopup_SameFolder.py
 
-      - name: Upload output Excel
+      - name: Run DOD date cleanup
+        if: always()
+        run: |
+          if [ -f "Echovita_Family_Links_Tool_Output.xlsx" ]; then
+            python Echovita_Dates_Cleanup_Tool.py Echovita_Family_Links_Tool_Output.xlsx
+          else
+            echo "Scraper output file not found."
+            ls -la
+          fi
+
+      - name: Upload original and cleaned Excel
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Echovita_Output
-          path: Echovita_Family_Links_Tool_Output.xlsx
+          path: |
+            Echovita_Family_Links_Tool_Output.xlsx
+            Echovita_Family_Links_Tool_Output_Cleaned.xlsx
           retention-days: 7

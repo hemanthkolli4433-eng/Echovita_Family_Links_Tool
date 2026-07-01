@@ -20,30 +20,49 @@ def _parse_major(version_text: str):
 
 def get_chrome_major_version():
     """
-    Robust Windows Chrome major version detection:
-    1) try: where chrome
-    2) try common install paths (Program Files + LocalAppData)
-    3) try registry version (BLBeacon)
-    Returns: int major version (e.g., 144) or None
+    Detect Chrome major version on Windows and GitHub/Linux.
+    Returns int major version or None.
     """
 
-    # --- 1) Try PATH: `where chrome`
     try:
-        where_out = subprocess.check_output(["where", "chrome"], text=True, stderr=subprocess.STDOUT)
-        for line in where_out.splitlines():
-            chrome_path = line.strip()
-            if chrome_path and chrome_path.lower().endswith("chrome.exe") and os.path.exists(chrome_path):
+        if os.name == "nt":
+            where_out = subprocess.check_output(
+                ["where", "chrome"],
+                text=True,
+                stderr=subprocess.STDOUT
+            )
+            lines = where_out.splitlines()
+        else:
+            lines = []
+            for cmd in ["google-chrome", "chromium-browser", "chromium", "google-chrome-stable"]:
                 try:
-                    ver_out = subprocess.check_output([chrome_path, "--version"], text=True).strip()
+                    where_out = subprocess.check_output(
+                        ["which", cmd],
+                        text=True,
+                        stderr=subprocess.STDOUT
+                    )
+                    if where_out.strip():
+                        lines.append(where_out.strip())
+                except Exception:
+                    pass
+
+        for line in lines:
+            chrome_path = line.strip()
+            if chrome_path and os.path.exists(chrome_path):
+                try:
+                    ver_out = subprocess.check_output(
+                        [chrome_path, "--version"],
+                        text=True
+                    ).strip()
                     major = _parse_major(ver_out)
                     if major:
                         return major
                 except Exception:
                     pass
+
     except Exception:
         pass
 
-    # --- 2) Try common paths (system + per-user)
     local = os.environ.get("LOCALAPPDATA", "")
     candidates = [
         r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -52,6 +71,7 @@ def get_chrome_major_version():
         os.path.join(local, r"Google\Chrome Beta\Application\chrome.exe"),
         os.path.join(local, r"Google\Chrome SxS\Application\chrome.exe"),
     ]
+
     for chrome_path in candidates:
         if chrome_path and os.path.exists(chrome_path):
             try:
@@ -62,12 +82,12 @@ def get_chrome_major_version():
             except Exception:
                 pass
 
-    # --- 3) Try registry (version stored here on many installs)
     reg_keys = [
         r"HKCU\Software\Google\Chrome\BLBeacon",
         r"HKLM\Software\Google\Chrome\BLBeacon",
         r"HKLM\Software\WOW6432Node\Google\Chrome\BLBeacon",
     ]
+
     for key in reg_keys:
         try:
             reg_out = subprocess.check_output(
@@ -75,7 +95,6 @@ def get_chrome_major_version():
                 text=True,
                 stderr=subprocess.STDOUT
             )
-            # Example line: "version    REG_SZ    144.0.7559.110"
             m = re.search(r"version\s+REG_SZ\s+([0-9.]+)", reg_out, re.IGNORECASE)
             if m:
                 major = _parse_major(m.group(1))
@@ -85,8 +104,6 @@ def get_chrome_major_version():
             pass
 
     return None
-
-
 PER_PAGE = 24
 OUTPUT_FILENAME = "Echovita_Family_Links_Tool_Output.xlsx"
 CAPTCHA_TEXT = (

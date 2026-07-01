@@ -7,6 +7,7 @@ import sys
 
 
 from openpyxl import Workbook, load_workbook
+from pandas import options
 import undetected_chromedriver as uc
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
@@ -294,6 +295,16 @@ def create_driver():
     options.add_argument("--disable-backgrounding-occluded-windows")
     options.add_argument("--disable-renderer-backgrounding")
     options.add_argument("--disable-features=CalculateNativeWinOcclusion")
+    
+    options.add_argument("--disable-background-networking")
+    options.add_argument("--disable-sync")
+    options.add_argument("--disable-component-update")
+    options.add_argument("--disable-default-apps")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-features=OptimizationHints,MediaRouter,Translate")
+    options.add_argument("--disable-search-engine-choice-screen")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
 
     driver = uc.Chrome(options=options, version_main=chrome_major)
     driver.set_page_load_timeout(60)

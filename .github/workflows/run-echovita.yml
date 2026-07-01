@@ -7,31 +7,40 @@ on:
 
 jobs:
   run-tool:
-    runs-on: windows-latest
-    timeout-minutes: 30 # 🌟 Safeguard: Stops the workflow if it gets stuck for more than 30 mins
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4 
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      - name: Install Google Chrome and Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable xvfb
+
       - name: Install Python packages
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip setuptools wheel
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install undetected-chromedriver selenium openpyxl
+          fi
 
       - name: Run Echovita Python tool
-        shell: powershell
         run: |
-          python Echovita_Family_Links_Tool_NoPopup_SameFolder.py 2>&1 | Select-String -Pattern "google_apis\\gcm" -NotMatch
+          xvfb-run -a python Echovita_Family_Links_Tool_NoPopup_SameFolder.py
 
       - name: Upload output Excel
-        if: always() # 🌟 Ensures the partial Excel sheet is uploaded even if the script errors out halfway!
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Echovita_Output
           path: Echovita_Family_Links_Tool_Output.xlsx
+          retention-days: 7

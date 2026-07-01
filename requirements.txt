@@ -1,4 +1,6 @@
-openpyxl
-selenium
 undetected-chromedriver
+selenium
+openpyxl
 pandas
+xlsxwriter
+tqdm

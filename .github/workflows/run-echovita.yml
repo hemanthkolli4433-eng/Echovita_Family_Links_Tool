@@ -23,6 +23,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable xvfb
+          google-chrome --version
+          which google-chrome
+          rm -rf ~/.local/share/undetected_chromedriver
+          rm -rf ~/.cache/selenium
 
       - name: Install Python packages
         run: |
@@ -32,6 +36,12 @@ jobs:
           else
             pip install undetected-chromedriver selenium openpyxl
           fi
+
+      - name: Check installed versions
+        run: |
+          python --version
+          google-chrome --version
+          which google-chrome
 
       - name: Run Echovita Python tool
         run: |
